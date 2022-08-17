@@ -1,0 +1,111 @@
+<?php
+
+/**
+ * @file
+ * Examples demonstrating how to implement and invoke hooks.
+ */
+
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_help().
+ */
+function yse_tacklebox_help($route_name, RouteMatchInterface $route_match) {
+  if ($route_name == 'help.page.yse_tacklebox') {
+    $text = file_get_contents(__DIR__ . '/README.md');
+    if (!Drupal::moduleHandler()->moduleExists('markdown')) {
+      return '<pre>' . $text . '</pre>';
+    }
+    else {
+      /** @var \Drupal\markdown\PluginManager\ParserManagerInterface $parser_manager */
+      $parser_manager = \Drupal::service('plugin.manager.markdown.parser');
+      $parser = $parser_manager->getDefaultParser([
+        'render_strategy' => ['type' => 'none'],
+      ]);
+      return $parser->parse($text);
+    }
+  }
+  return NULL;
+}
+
+
+/**
+ * Implements hook_entity_form_mode_alter().
+ *
+ * We want to isolate large groups of fields for the editor to make profile editing easier
+ * We have form modes defined for entities that need them but without explicit hooks we cannot
+ * present them as normal edit links.   We could pull in a huge inline form where we specify
+ * the form mode, like we do with TICL paragraphs, but then you need a route and a menu and
+ * training to avoid the edit button!  So instead we try to steer the appropriate form to the 
+ * editor in the normal edit context.
+ * Notes:
+ *   0. assume that permissions are being handled normally for read write
+ *    a. this means not checking for netid on entities if we confer ownership already
+ *   1. check for bundle to see if we need to act
+ *   2. check for conditions that governs the mode to use
+ *    a. on entity
+ *    b. with currentuser
+ *    c. environmental, etc.
+ *
+ * @see hook_entity_form_mode_alter()
+ */
+function yse_tacklebox_entity_form_mode_alter(&$form_mode, EntityInterface $entity) {
+
+    $account = \Drupal::currentUser();
+    $user_roles = $account->getRoles();
+    $is_admin   = in_array('administrator', $user_roles) ? true : false;
+    $is_student = in_array('student', $user_roles) ? true : false;
+    $is_staff   = in_array('staff',   $user_roles) ? true : false;
+    $is_faculty = in_array('faculty', $user_roles) ? true : false;
+
+  if ($entity->bundle() == 'yse_detail_profile') {
+  // Here we check the profile type rather than user role since a staffer might edit a faculty profile, etc.
+    $form_view_clue = $entity->get('field_primary_restype_taxref')->referencedEntities()[0]->label();
+    $form_view_more  = $entity->get('field_student_degree_type_taxref');
+
+    // PhDs are more like faculty with offices etc.
+    if ($form_view_more){
+      if ($entity->get('field_student_degree_type_taxref')->referencedEntities()){
+        $mod = $entity->get('field_student_degree_type_taxref')->referencedEntities()[0]->label();
+        if ($mod and $mod == 'PhD'){
+          $form_view_clue = 'faculty';
+        }
+      }
+    }
+
+    $form_view_name = 'form_' . strtolower($form_view_clue);
+
+    if (!$is_admin ){
+      $form_mode = $form_view_name;
+    } elseif (in_array('profile_manager', $user_roles)) {
+      // let admins see what users see by toggling the 'profile_manager' role.
+        \Drupal::messenger()->addWarning('You are using the per-role view mode profile form.  You can instead see the Default with all fields by by removing "Profile Manager" from your user roles.');
+       $form_mode = $form_view_name;
+    } else {
+        \Drupal::messenger()->addMessage('You are using the Default profile form.  You can instead see the per-role view modes by adding "Profile Manager" to your user roles.');
+      // let the Default load
+    }
+  }  elseif ($entity instanceof \Drupal\user\UserInterface) {
+  // Here we check the user role for the form mode
+    if (!$is_admin){
+      if ($is_student){
+        $form_mode = 'form_student';
+      } elseif ($is_faculty){
+        $form_mode = 'form_faculty';
+      } else {
+        $form_mode = 'form_staff';
+      }
+    }
+  }
+}
+
+/**
+ * @} End of "defgroup yse_tacklebox".
+ */

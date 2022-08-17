@@ -1,0 +1,8 @@
+name: YSE Tacklebox
+type: module
+description: Hooks that apply to other modules that we have to fish for.
+package: YSE Contrib
+core_version_requirement: ^8.7.7 || ^9
+dependencies:
+  - drupal:help
+
