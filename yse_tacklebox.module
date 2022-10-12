@@ -70,14 +70,18 @@ function yse_tacklebox_entity_form_mode_alter(&$form_mode, EntityInterface $enti
     $form_view_clue = $entity->get('field_primary_restype_taxref')->referencedEntities()[0]->label();
     $form_view_more  = $entity->get('field_student_degree_type_taxref');
 
-    // PhDs are more like faculty with offices etc.
-    if ($form_view_more){
-      if ($entity->get('field_student_degree_type_taxref')->referencedEntities()){
-        $mod = $entity->get('field_student_degree_type_taxref')->referencedEntities()[0]->label();
-        if ($mod and $mod == 'PhD'){
-          $form_view_clue = 'faculty';
-        }
-      }
+    // PhDs have been relegated back the student status.
+    // if ($form_view_more){
+    //  if ($entity->get('field_student_degree_type_taxref')->referencedEntities()){
+    //    $mod = $entity->get('field_student_degree_type_taxref')->referencedEntities()[0]->label();
+    //    if ($mod and $mod == 'PhD'){
+    //      $form_view_clue = 'student';
+    //    }
+    //  }
+    //}
+
+    if (strtolower($form_view_clue) == 'postdoc'){
+       $form_view_clue = 'staff';
     }
 
     $form_view_name = 'form_' . strtolower($form_view_clue);
@@ -108,4 +112,5 @@ function yse_tacklebox_entity_form_mode_alter(&$form_mode, EntityInterface $enti
 
 /**
  * @} End of "defgroup yse_tacklebox".
+ * TODO - add public/protected site awareness with messaging
  */
