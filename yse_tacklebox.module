@@ -64,6 +64,7 @@ function yse_tacklebox_entity_form_mode_alter(&$form_mode, EntityInterface $enti
     $is_student = in_array('student', $user_roles) ? true : false;
     $is_staff   = in_array('staff',   $user_roles) ? true : false;
     $is_faculty = in_array('faculty', $user_roles) ? true : false;
+    $is_manager = in_array('profile_manager', $user_roles) ? true : false;
 
   if ($entity->bundle() == 'yse_detail_profile') {
   // Here we check the profile type rather than user role since a staffer might edit a faculty profile, etc.
@@ -86,15 +87,19 @@ function yse_tacklebox_entity_form_mode_alter(&$form_mode, EntityInterface $enti
 
     $form_view_name = 'form_' . strtolower($form_view_clue);
 
-    if (!$is_admin ){
-      $form_mode = $form_view_name;
-    } elseif (in_array('profile_manager', $user_roles)) {
+    if ($is_admin){
+      if (in_array('profile_manager', $user_roles)) {
       // let admins see what users see by toggling the 'profile_manager' role.
-        \Drupal::messenger()->addWarning('You are using the per-role view mode profile form.  You can instead see the Default with all fields by by removing "Profile Manager" from your user roles.');
-       $form_mode = $form_view_name;
+        \Drupal::messenger()->addWarning('You are using the profile_manager view mode profile form.  You can instead see the Default with all fields by by removing "Profile Manager" from your user roles.');
+        $form_mode = 'form_manager';
+      } else {
+        \Drupal::messenger()->addMessage('You are using the Default profile form.  You can instead see the profile_manager view mode by adding "Profile Manager" to your user roles.');
+        // let the Default load
+      }
+    } elseif ($is_manager){
+        $form_mode = 'form_manager';
     } else {
-        \Drupal::messenger()->addMessage('You are using the Default profile form.  You can instead see the per-role view modes by adding "Profile Manager" to your user roles.');
-      // let the Default load
+        $form_mode = $form_view_name;
     }
   }  elseif ($entity instanceof \Drupal\user\UserInterface) {
   // Here we check the user role for the form mode
