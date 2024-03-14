@@ -43,7 +43,7 @@ function yse_tacklebox_help($route_name, RouteMatchInterface $route_match) {
  * We have form modes defined for entities that need them but without explicit hooks we cannot
  * present them as normal edit links.   We could pull in a huge inline form where we specify
  * the form mode, like we do with TICL paragraphs, but then you need a route and a menu and
- * training to avoid the edit button!  So instead we try to steer the appropriate form to the 
+ * training to avoid the edit button!  So instead we try to steer the appropriate form to the
  * editor in the normal edit context.
  * Notes:
  *   0. assume that permissions are being handled normally for read write
@@ -99,7 +99,9 @@ function yse_tacklebox_entity_form_mode_alter(&$form_mode, EntityInterface $enti
   }  elseif ($entity instanceof \Drupal\user\UserInterface) {
   // Here we check the user role for the form mode
     if (!$is_admin){
-      if ($is_student){
+      if (in_array('profile_manager', $user_roles)) {
+        $form_mode = 'form_manager';
+      } elseif ($is_student){
         $form_mode = 'form_student';
       } elseif ($is_faculty){
         $form_mode = 'form_faculty';
