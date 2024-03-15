@@ -117,7 +117,54 @@ function yse_tacklebox_entity_form_mode_alter(&$form_mode, EntityInterface $enti
   }
 }
 
-/**
- * @} End of "defgroup yse_tacklebox".
- * TODO - add public/protected site awareness with messaging
- */
+
+function yse_tacklebox_node_presave(EntityInterface $node) {
+
+  $root_level_roles = ['faculty','student','staff'];
+  $aux_roles = ['staff' => ['profile_manager','content_manager','faculty_support']];
+
+  if ($node->bundle() == 'yse_detail_profile'){
+    // Avoid a round-robin with new profile stubs.
+    if (!$node->isNew()) {
+      $netid = $node->get('field_yse_netid')->getString();
+      $new_primary = $node->get('field_primary_restype_taxref')->referencedEntities()[0]->getName();
+      $old_primary = $node->original->get('field_primary_restype_taxref')->referencedEntities()[0]->getName();
+
+      if (!empty($netid) && !empty($new_primary) && !empty($old_primary) && ($new_primary !== $old_primary)){
+        $netid = strtolower($netid);
+        $newtype = strtolower($new_primary);
+        $oldtype = strtolower($old_primary);
+
+        if (($oldtype === 'postdoc' && $newtype === 'staff') || ($oldtype === 'staff' && $newtype === 'postdoc')){
+          //swapping to/from postdoc is treated as a cosmetic change
+          //no-op in terms of user roles
+          return \Drupal::service('messenger')->addMessage('Swapping to/from Staff and Postdoc, roles left intact for ' . $node->label());
+        } else {
+          $uid = \Drupal::service('cas.user_manager')->getUidForCasUsername($netid);
+          if (empty($uid)){
+            return \Drupal::service('messenger')->addMessage('NetID ' . $netid . ' did not resolve to a user record, no role assignment for ' . $node->label());
+          } else {
+            $user = \Drupal\user\Entity\User::load($uid);
+            //Make sure we don't have any more than one root level role
+            foreach ($root_level_roles as $removal){
+              $user->removeRole($removal);
+            }
+            if (!empty($aux_roles[$oldtype])){
+              foreach ($aux_roles[$oldtype] as $aux_rm){
+                $user->removeRole($aux_rm);
+              }
+            }
+            $newrole = $newtype == 'postdoc' ? 'staff' : $newtype;
+            $newname = $newtype == 'postdoc' ? 'Staff' : $new_primary;
+
+            if (in_array($newrole, $root_level_roles)) {
+              $user->addRole($newrole);
+              \Drupal::service('messenger')->addMessage('Role ' . $newname . ' assigned to user record for ' . $node->label());
+            }
+            $user->save();
+          }
+        }
+      }
+    }
+  }
+}
