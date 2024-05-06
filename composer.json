@@ -1,0 +1,6 @@
+{
+  "name": "slattery/yse_tacklebox",
+  "description": "form view mode swap and other hooks",
+  "type": "drupal-custom-module",
+  "license": "GPL-2.0-or-later"
+}
