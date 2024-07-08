@@ -5,6 +5,7 @@
  * Examples demonstrating how to implement and invoke hooks.
  */
 
+use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -167,4 +168,13 @@ function yse_tacklebox_node_presave(EntityInterface $node) {
       }
     }
   }
+}
+
+
+/**
+ * Implements hook_block_build_BASE_BLOCK_ID_alter().
+ */
+function yse_tacklebox_block_build_facet_block_alter(array &$build, BlockPluginInterface $block) {
+  // Disable BigPipe placeholder for this block.
+  $build['#create_placeholder'] = FALSE;
 }
