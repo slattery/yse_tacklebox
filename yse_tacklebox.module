@@ -178,3 +178,20 @@ function yse_tacklebox_block_build_facet_block_alter(array &$build, BlockPluginI
   // Disable BigPipe placeholder for this block.
   $build['#create_placeholder'] = FALSE;
 }
+
+
+/**
+ * Implements hook_preprocess_HOOK() for field_multiple_value_form().
+ * we try to augment generic 'Add another...' button labels with the field label
+ */
+function yse_tacklebox_preprocess_field_multiple_value_form(&$variables) {
+  /** value calls render from \Drupal\Core\StringTranslation\TranslatableMarkup **/
+  if (isset($variables['button']['#value']) && ($variables['button']['#value']->render() == 'Add another item')) {
+    if (isset($variables['element']['#title'])){
+      /** title is not TranslatableMarkup **/
+      $fieldlabel = $variables['element']['#title'];
+      $addmoretxt = "Add another {$fieldlabel} item";
+      $variables['button']['#value'] = t($addmoretxt);
+    }
+  }
+}
